@@ -1,1 +1,3 @@
-# YZV405_2324_150200310
+# YZV 405E NLP Term Project
+
+Bora Boyacıoğlu, 150200310
