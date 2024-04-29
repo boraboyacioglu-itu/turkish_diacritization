@@ -1,11 +1,16 @@
+# Author: Bora Boyacıoğlu
+# Student ID: 150200310
+
 import csv
+import pickle as pkl
 from unidecode import unidecode
+
 from torch.utils.data import Dataset
 
 class DiacritizationDataset(Dataset):
     def __init__(self, file_name, type):
         # Read the data from the file.
-        text = self.read_data(file_name)
+        text: list = self.read_data(file_name)
         
         # Initialize the diacritized and undiacritized data.
         self.diacritized = None
@@ -41,6 +46,27 @@ class DiacritizationDataset(Dataset):
     
     def undiacritize(self, text):
         return [unidecode(sentence) for sentence in text]
+    
+    def get(self, idx, type):
+        if type == 'd':
+            return self.diacritized[idx] if self.diacritized else None
+        elif type == 'und':
+            return self.undiacritized[idx]
+        else:
+            print('\033[91mInvalid type\033[0m')
+            return None
+    
+    def set(self, idx, type, new):
+        if type == 'd':
+            self.diacritized[idx] = new
+        elif type == 'und':
+            self.undiacritized[idx] = new
+        else:
+            print('\033[91mInvalid type\033[0m')
+    
+    def save_data(self, file_name):
+        with open(file_name, 'wb') as f:
+            pkl.dump(self, f)
         
     def __len__(self):
         return len(self.undiacritized)
