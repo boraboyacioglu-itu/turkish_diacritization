@@ -11,11 +11,13 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, src):
-        # src: [src_len, batch_size]
         embedded = self.dropout(self.embedding(src))
-        # embedded: [src_len, batch_size, emb_dim]
-        outputs, (hidden, cell) = self.rnn(embedded)
+        _, (hidden, cell) = self.rnn(embedded)
         return hidden, cell
+    
+    def init_hidden(self, batch_size):
+        return (torch.zeros(1, batch_size, self.rnn.hidden_size),
+                torch.zeros(1, batch_size, self.rnn.hidden_size))
 
 class Decoder(nn.Module):
     def __init__(self, output_dim, emb_dim, hid_dim, n_layers, dropout):
@@ -27,14 +29,10 @@ class Decoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input, hidden, cell):
-        # input: [batch_size]
-        input = input.unsqueeze(0)  # input: [1, batch_size]
+        input = input.unsqueeze(0)
         embedded = self.dropout(self.embedding(input))
-        # embedded: [1, batch_size, emb_dim]
         output, (hidden, cell) = self.rnn(embedded, (hidden, cell))
-        # output: [seq_len, batch_size, hid_dim]
         prediction = self.fc_out(output.squeeze(0))
-        # prediction: [batch_size, output_dim]
         return prediction, hidden, cell
 
 class Seq2Seq(nn.Module):
@@ -51,7 +49,7 @@ class Seq2Seq(nn.Module):
 
         outputs = torch.zeros(trg_len, batch_size, trg_vocab_size).to(self.device)
 
-        hidden, cell = self.encoder(src)
+        hidden, cell = self.encoder.init_hidden(batch_size)
 
         input = trg[0,:]
 

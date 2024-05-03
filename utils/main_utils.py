@@ -1,5 +1,6 @@
 import re
 import spacy
+from collections import defaultdict
 
 from dataset import DiacritizationDataset
 
@@ -72,3 +73,25 @@ def tokenize(texts: DiacritizationDataset):
                 texts.set(i, type, tokenize_text(text))
     
     print()
+
+def build_vocab(texts):
+    vocab = defaultdict(int)
+    
+    # Add special marker tokens to the vocabulary.
+    special_tokens = ['<sos>', '<eos>', '<unk>', '<pad>']
+    for token in special_tokens:
+        vocab[token] = 10**3 * len(texts)  # A large enough number
+    
+    # Count the frequency of each word in the dataset.
+    for text in texts:
+        for token in text:
+            vocab[token] += 1
+    
+    # Sort the vocabulary by frequency.
+    vocab_list = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
+    
+    # Create the word to index and index to word mappings.
+    w2i = {word: idx for idx, (word, _) in enumerate(vocab_list)}
+    i2w = {idx: word for word, idx in w2i.items()}
+
+    return w2i, i2w
