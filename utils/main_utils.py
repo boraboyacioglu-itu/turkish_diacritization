@@ -1,5 +1,6 @@
 import re
 import spacy
+import time
 from collections import defaultdict
 
 from dataset import DiacritizationDataset
@@ -58,7 +59,7 @@ def tokenize(texts: DiacritizationDataset):
     
     for i in range(length):
         # Print the progess.
-        print(f'\rTokenizing text {100 * (i + 1) / length:.2f}%', end='')
+        print(f'\rTokenizing... {100 * (i + 1) / length:.2f}%', end='')
         
         for type in ['und', 'd']:
             # Get the text.
@@ -74,24 +75,51 @@ def tokenize(texts: DiacritizationDataset):
     
     print()
 
-def build_vocab(texts):
-    vocab = defaultdict(int)
-    
-    # Add special marker tokens to the vocabulary.
-    special_tokens = ['<sos>', '<eos>', '<unk>', '<pad>']
-    for token in special_tokens:
-        vocab[token] = 10**3 * len(texts)  # A large enough number
-    
-    # Count the frequency of each word in the dataset.
-    for text in texts:
-        for token in text:
-            vocab[token] += 1
-    
-    # Sort the vocabulary by frequency.
-    vocab_list = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
-    
-    # Create the word to index and index to word mappings.
-    w2i = {word: idx for idx, (word, _) in enumerate(vocab_list)}
-    i2w = {idx: word for word, idx in w2i.items()}
+def verbose_batch(i, time_init, length, skipped, epoch_loss):
+    """ Verbose the batch. """
 
-    return w2i, i2w
+    # Build the progress bar.
+    percentage = 100 * (i + 1) / length
+    bar = f'[{"=" * int(percentage / 5)}{" " * (20 - int(percentage / 5))}]'
+    
+    time_diff = time.time() - time_init
+    min0, sec0 = divmod(time_diff, 60)
+    processed = i + 1 - skipped
+    avg_speed = time_diff / processed if processed != 0 else 0
+    min1, sec1 = divmod(avg_speed * (length - (i + 1)), 60)
+
+    # Print the statistics.
+    print(f"\rBatch {i+1}/{length} {bar} ({percentage:.2f}%)",
+          f"Epoch Loss: {epoch_loss / processed if processed != 0 else 0:.4f}",
+          f"Skipped: {skipped}",
+          f"Elapsed: {int(min0):02d}:{int(sec0):02d}",
+          f"Speed: {avg_speed:.2f}s/batch",
+          f"Remaining: {int(min1):02d}:{int(sec1):02d}",
+          sep=", ", end="")
+
+def untokenize(dataset, index, type, detailed=False):
+    # Get the tokens and the vocabulary.
+    tokens = dataset.get(index, type)
+    vocab = dataset.vocab
+    
+    sentence = []
+    for word in tokens:
+        
+        # Convert the tokens into words.
+        converted = vocab['i2w'][word]
+        
+        # Break if the padding token is reached.
+        if converted == '<pad>':
+            break
+        
+        # Append the converted string.
+        sentence.append(str(converted))
+    
+    # Join the sentence.
+    output = None
+    if not detailed:
+        output = ' '.join(sentence[1:-1])
+    else:
+        output = ' '.join(sentence) + f' <pad> ({tokens.count(vocab["w2i"]["<pad>"])})...'
+    
+    return output
