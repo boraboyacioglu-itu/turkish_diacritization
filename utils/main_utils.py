@@ -8,6 +8,12 @@ from dataset import DiacritizationDataset
 # Load the Turkish language model.
 nlp = spacy.blank('tr')
 
+# Define Turkish character transformation.
+tr_maps = str.maketrans({'â': 'a', 'î': 'i', 'û': 'ü'})
+
+# Define the normalization and tokenization function.
+nt = lambda x: tokenize_text(normalize_str(x.translate(tr_maps)))
+
 def normalize_str(text: str) -> str:
     """ Normalize a string by converting it to lowercase and removing non-alphanumeric characters. """
     # Convert the text to lowercase.
