@@ -1,18 +1,22 @@
+# Author: Bora Boyacıoğlu
+# Student ID: 150200310
+
+import csv
 import re
-import spacy
 import time
+
 from collections import defaultdict
+from typing import List, Tuple
+
+import spacy
 
 from dataset import DiacritizationDataset
 
 # Load the Turkish language model.
 nlp = spacy.blank('tr')
 
-# Define Turkish character transformation.
-tr_maps = str.maketrans({'â': 'a', 'î': 'i', 'û': 'ü'})
-
 # Define the normalization and tokenization function.
-nt = lambda x: tokenize_text(normalize_str(x.translate(tr_maps)))
+nt = lambda x: tokenize_text(normalize_str(x))
 
 def normalize_str(text: str) -> str:
     """ Normalize a string by converting it to lowercase and removing non-alphanumeric characters. """
@@ -129,3 +133,50 @@ def untokenize(dataset, index, type, detailed=False):
         output = ' '.join(sentence) + f' <pad> ({tokens.count(vocab["w2i"]["<pad>"])})...'
     
     return output
+
+def get_scores(predicted: List[List[str]], original_path: str) -> Tuple[float, float]:
+    """ Get the scores for the predicted and original texts.
+    
+    Args:
+        predicted (List[str]): The list of predicted texts.
+        original_path (str): The path to the original texts.
+        
+    Returns:
+        word_score (float): The word-level accuracy.
+        sentence_score (float): The sentence-level accuracy.
+    """
+    
+    # Open the original data.
+    with open(original_path, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        
+        # Read the sentences by normalising and tokenizing them.
+        original = [nt(row[1]) for row in reader][1:-1]
+    
+    length = (
+        len(original),  # The number of sentences.
+        sum([len(sentence) for sentence in original])  # The number of words.
+    )
+        
+    word_score = 0
+    sentence_score = 0
+    
+    for i, sent in enumerate(original):
+        pred = predicted[i].split(' ')
+        
+        # Calculate the sentence score.
+        if set(pred).issubset(sent):
+            sentence_score += 1
+        
+        # Calculate the word score.
+        for word in sent:
+            if word in pred:
+                word_score += 1
+    
+    # Normalize the scores.
+    word_score /= length[1]
+    sentence_score /= length[0]
+    
+    print(f"\033[1mWord Score:\033[0m\t{100 * word_score:.2f}%\n\033[1mSentence Score:\033[0m\t{100 * sentence_score:.2f}%")
+    
+    return word_score, sentence_score

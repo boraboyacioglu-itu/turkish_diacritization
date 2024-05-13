@@ -1,3 +1,6 @@
+# Author: Bora Boyacıoğlu
+# Student ID: 150200310
+
 import random
 
 import torch
